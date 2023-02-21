@@ -27,7 +27,6 @@ func NewSession(id uint) *Session { // Constructor
 	var newObj Session
 	newObj.UserId = id
 	newObj.List = list.New()
-	newObj.current = newObj.List.Front()
 	return &newObj
 }
 
@@ -41,7 +40,7 @@ func (obj *Session) Pause() {
 func (obj *Session) Play() {
 	if obj.IsPlaying == false {
 		if obj.timer == nil {
-			if obj.current.Value != nil {
+			if obj.current != nil {
 				obj.IsPlaying = true
 				obj.timer = timer.AfterFunc(time.Second*obj.current.Value.(track).Duration, func() {
 					obj.timer = nil
@@ -51,6 +50,7 @@ func (obj *Session) Play() {
 						obj.Play()
 					}
 				})
+				obj.timer.Start()
 			} else {
 				panic("List is empty")
 			}
@@ -91,4 +91,7 @@ func (obj *Session) AddSong(newTrack track) {
 	obj.mutex.Lock()
 	defer obj.mutex.Unlock()
 	obj.List.PushBack(newTrack)
+	if obj.List.Len() == 1 {
+		obj.current = obj.List.Back()
+	}
 }
