@@ -1,16 +1,18 @@
 package playlist_modul
 
 import (
+	"container/list"
 	"testing"
 	"time"
 )
 
 func Test(t *testing.T) {
-	session := NewSession(0)
+	var session Playlist
+	session.List = list.New()
 	testID := 0
 	t.Logf("\tTest %d:\tPlay test", testID)
 	{
-		song := track{nil, "test", 5}
+		song := track{Name: "test", Duration: 5}
 		session.AddSong(song)
 		session.Play()
 		if session.timer == nil || session.IsPlaying == false {
@@ -63,7 +65,7 @@ func Test(t *testing.T) {
 	testID++
 	t.Logf("\tTest %d:\tNext test", testID)
 	{
-		song := track{nil, "test1", 1}
+		song := track{Name: "test1", Duration: 1}
 		session.AddSong(song)
 		session.Play()
 		session.Next()
@@ -74,7 +76,7 @@ func Test(t *testing.T) {
 	testID++
 	t.Logf("\tTest %d:\tAdvanced Play test", testID)
 	{
-		song := track{nil, "test2", 2}
+		song := track{Name: "test2", Duration: 2}
 		session.AddSong(song)
 		session.AddSong(song)
 		session.Play()
