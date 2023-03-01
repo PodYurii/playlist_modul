@@ -10,7 +10,6 @@ import (
 type track struct {
 	Name     string
 	Duration time.Duration
-	Path     string
 }
 
 type Playlist struct {

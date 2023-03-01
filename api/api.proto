@@ -7,12 +7,8 @@ package api;
 service Playlist {
   rpc SignIn(AuthRequest) returns (OnlyToken) {}
   rpc SignUp(AuthRequest) returns (Empty) {}
-  rpc DownloadTrack(OnlyToken) returns (stream TrackResponse) {}
-  rpc ListOfTracks(OnlyToken) returns (stream ListResponse) {}
-  rpc AddSong(NameRequest) returns (Empty) {}
-  rpc DeleteSong(NameRequest) returns (Empty) {}
-  rpc Next(OnlyToken) returns (Empty) {}
-  rpc Prev(OnlyToken) returns (Empty) {}
+  rpc DownloadTrack(TokenAndId) returns (stream TrackResponse) {}
+  rpc ListOfTracks(FindRequest) returns (stream ListResponse) {}
 }
 
 message AuthRequest {
@@ -24,23 +20,28 @@ message  TrackResponse {
   bytes Chunk = 2;
 }
 
+message  FindRequest {
+  uint64 SessionToken = 1;
+  string Findstr =2;
+}
+
 message  ListRequest {
   bool OwnOrCommon = 1;
 }
 
 message  ListResponse {
-  string Name = 1;
-  bool current = 2;
-  int64 Duration = 3;
-}
-
-message  NameRequest {
-  uint64 SessionToken = 1;
-  string TrackName = 2;
+  uint64 Id = 1;
+  int64  Duration = 2;
+  string Name = 3;
 }
 
 message  OnlyToken {
   uint64 SessionToken = 1;
+}
+
+message  TokenAndId {
+  uint64 SessionToken = 1;
+  uint64 TrackId =2;
 }
 
 message  Empty {

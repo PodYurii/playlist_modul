@@ -24,12 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type PlaylistClient interface {
 	SignIn(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*OnlyToken, error)
 	SignUp(ctx context.Context, in *AuthRequest, opts ...grpc.CallOption) (*Empty, error)
-	DownloadTrack(ctx context.Context, in *OnlyToken, opts ...grpc.CallOption) (Playlist_DownloadTrackClient, error)
-	ListOfTracks(ctx context.Context, in *OnlyToken, opts ...grpc.CallOption) (Playlist_ListOfTracksClient, error)
-	AddSong(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*Empty, error)
-	DeleteSong(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*Empty, error)
-	Next(ctx context.Context, in *OnlyToken, opts ...grpc.CallOption) (*Empty, error)
-	Prev(ctx context.Context, in *OnlyToken, opts ...grpc.CallOption) (*Empty, error)
+	DownloadTrack(ctx context.Context, in *TokenAndId, opts ...grpc.CallOption) (Playlist_DownloadTrackClient, error)
+	ListOfTracks(ctx context.Context, in *FindRequest, opts ...grpc.CallOption) (Playlist_ListOfTracksClient, error)
 }
 
 type playlistClient struct {
@@ -58,7 +54,7 @@ func (c *playlistClient) SignUp(ctx context.Context, in *AuthRequest, opts ...gr
 	return out, nil
 }
 
-func (c *playlistClient) DownloadTrack(ctx context.Context, in *OnlyToken, opts ...grpc.CallOption) (Playlist_DownloadTrackClient, error) {
+func (c *playlistClient) DownloadTrack(ctx context.Context, in *TokenAndId, opts ...grpc.CallOption) (Playlist_DownloadTrackClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Playlist_ServiceDesc.Streams[0], "/api.Playlist/DownloadTrack", opts...)
 	if err != nil {
 		return nil, err
@@ -90,7 +86,7 @@ func (x *playlistDownloadTrackClient) Recv() (*TrackResponse, error) {
 	return m, nil
 }
 
-func (c *playlistClient) ListOfTracks(ctx context.Context, in *OnlyToken, opts ...grpc.CallOption) (Playlist_ListOfTracksClient, error) {
+func (c *playlistClient) ListOfTracks(ctx context.Context, in *FindRequest, opts ...grpc.CallOption) (Playlist_ListOfTracksClient, error) {
 	stream, err := c.cc.NewStream(ctx, &Playlist_ServiceDesc.Streams[1], "/api.Playlist/ListOfTracks", opts...)
 	if err != nil {
 		return nil, err
@@ -122,54 +118,14 @@ func (x *playlistListOfTracksClient) Recv() (*ListResponse, error) {
 	return m, nil
 }
 
-func (c *playlistClient) AddSong(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/api.Playlist/AddSong", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *playlistClient) DeleteSong(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/api.Playlist/DeleteSong", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *playlistClient) Next(ctx context.Context, in *OnlyToken, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/api.Playlist/Next", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *playlistClient) Prev(ctx context.Context, in *OnlyToken, opts ...grpc.CallOption) (*Empty, error) {
-	out := new(Empty)
-	err := c.cc.Invoke(ctx, "/api.Playlist/Prev", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // PlaylistServer is the server API for Playlist service.
 // All implementations must embed UnimplementedPlaylistServer
 // for forward compatibility
 type PlaylistServer interface {
 	SignIn(context.Context, *AuthRequest) (*OnlyToken, error)
 	SignUp(context.Context, *AuthRequest) (*Empty, error)
-	DownloadTrack(*OnlyToken, Playlist_DownloadTrackServer) error
-	ListOfTracks(*OnlyToken, Playlist_ListOfTracksServer) error
-	AddSong(context.Context, *NameRequest) (*Empty, error)
-	DeleteSong(context.Context, *NameRequest) (*Empty, error)
-	Next(context.Context, *OnlyToken) (*Empty, error)
-	Prev(context.Context, *OnlyToken) (*Empty, error)
+	DownloadTrack(*TokenAndId, Playlist_DownloadTrackServer) error
+	ListOfTracks(*FindRequest, Playlist_ListOfTracksServer) error
 	mustEmbedUnimplementedPlaylistServer()
 }
 
@@ -183,23 +139,11 @@ func (UnimplementedPlaylistServer) SignIn(context.Context, *AuthRequest) (*OnlyT
 func (UnimplementedPlaylistServer) SignUp(context.Context, *AuthRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SignUp not implemented")
 }
-func (UnimplementedPlaylistServer) DownloadTrack(*OnlyToken, Playlist_DownloadTrackServer) error {
+func (UnimplementedPlaylistServer) DownloadTrack(*TokenAndId, Playlist_DownloadTrackServer) error {
 	return status.Errorf(codes.Unimplemented, "method DownloadTrack not implemented")
 }
-func (UnimplementedPlaylistServer) ListOfTracks(*OnlyToken, Playlist_ListOfTracksServer) error {
+func (UnimplementedPlaylistServer) ListOfTracks(*FindRequest, Playlist_ListOfTracksServer) error {
 	return status.Errorf(codes.Unimplemented, "method ListOfTracks not implemented")
-}
-func (UnimplementedPlaylistServer) AddSong(context.Context, *NameRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddSong not implemented")
-}
-func (UnimplementedPlaylistServer) DeleteSong(context.Context, *NameRequest) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteSong not implemented")
-}
-func (UnimplementedPlaylistServer) Next(context.Context, *OnlyToken) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Next not implemented")
-}
-func (UnimplementedPlaylistServer) Prev(context.Context, *OnlyToken) (*Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Prev not implemented")
 }
 func (UnimplementedPlaylistServer) mustEmbedUnimplementedPlaylistServer() {}
 
@@ -251,7 +195,7 @@ func _Playlist_SignUp_Handler(srv interface{}, ctx context.Context, dec func(int
 }
 
 func _Playlist_DownloadTrack_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(OnlyToken)
+	m := new(TokenAndId)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -272,7 +216,7 @@ func (x *playlistDownloadTrackServer) Send(m *TrackResponse) error {
 }
 
 func _Playlist_ListOfTracks_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(OnlyToken)
+	m := new(FindRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
@@ -292,78 +236,6 @@ func (x *playlistListOfTracksServer) Send(m *ListResponse) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _Playlist_AddSong_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NameRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PlaylistServer).AddSong(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.Playlist/AddSong",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlaylistServer).AddSong(ctx, req.(*NameRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Playlist_DeleteSong_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(NameRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PlaylistServer).DeleteSong(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.Playlist/DeleteSong",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlaylistServer).DeleteSong(ctx, req.(*NameRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Playlist_Next_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OnlyToken)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PlaylistServer).Next(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.Playlist/Next",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlaylistServer).Next(ctx, req.(*OnlyToken))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Playlist_Prev_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OnlyToken)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(PlaylistServer).Prev(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/api.Playlist/Prev",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(PlaylistServer).Prev(ctx, req.(*OnlyToken))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // Playlist_ServiceDesc is the grpc.ServiceDesc for Playlist service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -378,22 +250,6 @@ var Playlist_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SignUp",
 			Handler:    _Playlist_SignUp_Handler,
-		},
-		{
-			MethodName: "AddSong",
-			Handler:    _Playlist_AddSong_Handler,
-		},
-		{
-			MethodName: "DeleteSong",
-			Handler:    _Playlist_DeleteSong_Handler,
-		},
-		{
-			MethodName: "Next",
-			Handler:    _Playlist_Next_Handler,
-		},
-		{
-			MethodName: "Prev",
-			Handler:    _Playlist_Prev_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
