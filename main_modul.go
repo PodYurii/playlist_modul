@@ -10,6 +10,7 @@ import (
 type track struct {
 	Name     string
 	Duration time.Duration
+	Id       uint64
 }
 
 type Playlist struct {
