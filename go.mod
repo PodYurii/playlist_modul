@@ -1,4 +1,4 @@
-module github.com/PodYurii/playlist_modul
+module github.com/PodYurii/playlist_module
 
 go 1.19
 
