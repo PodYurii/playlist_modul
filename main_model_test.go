@@ -1,14 +1,12 @@
-package playlist_modul
+package playlist_module
 
 import (
-	"container/list"
 	"testing"
 	"time"
 )
 
 func Test(t *testing.T) {
-	var session Playlist
-	session.List = list.New()
+	session := NewPlaylist()
 	testID := 0
 	t.Logf("\tTest %d:\tPlay test", testID)
 	{
@@ -80,9 +78,23 @@ func Test(t *testing.T) {
 		session.AddSong(song)
 		session.AddSong(song)
 		session.Play()
-		time.Sleep(time.Second * 11)
+		time.Sleep(time.Second * 6)
 		if session.current.Next() != nil {
 			t.Fatal("Wrong position")
+		}
+	}
+	testID++
+	t.Logf("\tTest %d:\tDeleteSong test", testID)
+	{
+		session.DeleteSong(1)
+		if session.List.Front().Value.(track).Duration != 5 {
+			t.Fatal("Wrong track deleted")
+		}
+		if session.List.Front().Next().Value.(track).Duration != 2 {
+			t.Fatal("Wrong track deleted")
+		}
+		if session.List.Front().Next().Value.(track).Duration != 2 {
+			t.Fatal("Wrong track deleted")
 		}
 	}
 }

@@ -1,4 +1,4 @@
-package playlist_modul
+package playlist_module
 
 import (
 	"container/list"
@@ -21,13 +21,19 @@ type Playlist struct {
 	mutex     sync.Mutex
 }
 
+func NewPlaylist() *Playlist {
+	var obj Playlist
+	obj.List = list.New()
+	return &obj
+}
+
 func (obj *Playlist) Prev() bool {
 	obj.mutex.Lock()
 	defer obj.mutex.Unlock()
 	if obj.current.Prev() == nil {
 		return false
 	}
-	obj.current.Value = obj.current.Prev()
+	obj.changeCurrent(obj.current.Prev())
 	return true
 }
 
@@ -37,7 +43,7 @@ func (obj *Playlist) Next() bool {
 	if obj.current.Next() == nil {
 		return false
 	}
-	obj.current.Value = obj.current.Next()
+	obj.changeCurrent(obj.current.Next())
 	return true
 }
 
@@ -50,21 +56,26 @@ func (obj *Playlist) AddSong(newTrack track) {
 	}
 }
 
-func (obj *Playlist) DeleteSong(Track string) bool {
-	if obj.current.Value.(track).Name == Track {
-		return false
-	}
+func (obj *Playlist) DeleteSong(pos int) bool {
 	obj.mutex.Lock()
 	defer obj.mutex.Unlock()
-	el := obj.List.Front()
-	for i := 0; i < obj.List.Len(); i++ {
-		if el.Value.(track).Name == Track {
-			obj.List.Remove(el)
-			return true
+	var el *list.Element
+	if pos <= obj.List.Len()/2 {
+		el = obj.List.Front()
+		for i := 0; i < pos; i++ {
+			el = el.Next()
 		}
-		el = el.Next()
+	} else {
+		el = obj.List.Back()
+		for i := obj.List.Len(); i > pos; i-- {
+			el = el.Prev()
+		}
 	}
-	return false
+	if obj.current == el {
+		return false
+	}
+	obj.List.Remove(el)
+	return true
 }
 
 func (obj *Playlist) Pause() {
