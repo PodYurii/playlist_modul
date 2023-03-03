@@ -15,7 +15,7 @@ type track struct {
 
 type Playlist struct {
 	List      *list.List
-	current   *list.Element
+	Current   *list.Element
 	IsPlaying bool
 	timer     *timer.Timer
 	mutex     sync.Mutex
@@ -30,20 +30,20 @@ func NewPlaylist() *Playlist {
 func (obj *Playlist) Prev() bool {
 	obj.mutex.Lock()
 	defer obj.mutex.Unlock()
-	if obj.current.Prev() == nil {
+	if obj.Current.Prev() == nil {
 		return false
 	}
-	obj.changeCurrent(obj.current.Prev())
+	obj.changeCurrent(obj.Current.Prev())
 	return true
 }
 
 func (obj *Playlist) Next() bool {
 	obj.mutex.Lock()
 	defer obj.mutex.Unlock()
-	if obj.current.Next() == nil {
+	if obj.Current.Next() == nil {
 		return false
 	}
-	obj.changeCurrent(obj.current.Next())
+	obj.changeCurrent(obj.Current.Next())
 	return true
 }
 
@@ -52,7 +52,7 @@ func (obj *Playlist) AddSong(newTrack track) {
 	defer obj.mutex.Unlock()
 	obj.List.PushBack(newTrack)
 	if obj.List.Len() == 1 {
-		obj.current = obj.List.Back()
+		obj.Current = obj.List.Back()
 	}
 }
 
@@ -71,7 +71,7 @@ func (obj *Playlist) DeleteSong(pos int) bool {
 			el = el.Prev()
 		}
 	}
-	if obj.current == el {
+	if obj.Current == el {
 		return false
 	}
 	obj.List.Remove(el)
@@ -88,13 +88,13 @@ func (obj *Playlist) Pause() {
 func (obj *Playlist) Play() {
 	if obj.IsPlaying == false {
 		if obj.timer == nil {
-			if obj.current != nil {
+			if obj.Current != nil {
 				obj.IsPlaying = true
-				obj.timer = timer.AfterFunc(time.Second*obj.current.Value.(track).Duration, func() {
+				obj.timer = timer.AfterFunc(time.Second*obj.Current.Value.(track).Duration, func() {
 					obj.timer = nil
 					obj.IsPlaying = false
-					if obj.current.Next() != nil {
-						obj.current = obj.current.Next()
+					if obj.Current.Next() != nil {
+						obj.Current = obj.Current.Next()
 						obj.Play()
 					}
 				})
@@ -113,6 +113,6 @@ func (obj *Playlist) changeCurrent(toChange *list.Element) {
 	obj.timer.Stop()
 	obj.timer = nil
 	obj.IsPlaying = false
-	obj.current = toChange
+	obj.Current = toChange
 	obj.Play()
 }
