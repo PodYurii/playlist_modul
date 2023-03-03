@@ -67,7 +67,7 @@ func Test(t *testing.T) {
 		session.AddSong(song)
 		session.Play()
 		session.Next()
-		if session.current.Value.(track).Name != "test1" {
+		if session.Current.Value.(track).Name != "test1" {
 			t.Fatal("Wrong track")
 		}
 	}
@@ -79,7 +79,7 @@ func Test(t *testing.T) {
 		session.AddSong(song)
 		session.Play()
 		time.Sleep(time.Second * 6)
-		if session.current.Next() != nil {
+		if session.Current.Next() != nil {
 			t.Fatal("Wrong position")
 		}
 	}
