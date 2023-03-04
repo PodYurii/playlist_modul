@@ -10,14 +10,14 @@ func Test(t *testing.T) {
 	testID := 0
 	t.Logf("\tTest %d:\tPlay test", testID)
 	{
-		song := track{Name: "test", Duration: 5}
+		song := Track{Name: "test", Duration: 5}
 		session.AddSong(song)
 		session.Play()
-		if session.timer == nil || session.IsPlaying == false {
+		if session.timer == nil || session.isPlaying == false {
 			t.Fatal("Timer is not created or Flag is false")
 		}
 		time.Sleep(time.Second * 6)
-		if session.timer != nil || session.IsPlaying == true {
+		if session.timer != nil || session.isPlaying == true {
 			t.Fatal("Timer is not expanse or Flag is true")
 		}
 	}
@@ -26,7 +26,7 @@ func Test(t *testing.T) {
 	{
 		i := 0
 		session.Play()
-		for session.IsPlaying && i < 110 {
+		for session.isPlaying && i < 110 {
 			time.Sleep(time.Millisecond * 50)
 			i++
 		}
@@ -44,7 +44,7 @@ func Test(t *testing.T) {
 		go func() {
 			for session.timer != nil && i < 130 {
 				time.Sleep(time.Millisecond * 50)
-				if session.IsPlaying == true {
+				if session.isPlaying == true {
 					i++
 				}
 			}
@@ -63,18 +63,18 @@ func Test(t *testing.T) {
 	testID++
 	t.Logf("\tTest %d:\tNext test", testID)
 	{
-		song := track{Name: "test1", Duration: 1}
+		song := Track{Name: "test1", Duration: 1}
 		session.AddSong(song)
 		session.Play()
 		session.Next()
-		if session.Current.Value.(track).Name != "test1" {
+		if session.Current.Value.(Track).Name != "test1" {
 			t.Fatal("Wrong track")
 		}
 	}
 	testID++
 	t.Logf("\tTest %d:\tAdvanced Play test", testID)
 	{
-		song := track{Name: "test2", Duration: 2}
+		song := Track{Name: "test2", Duration: 2}
 		session.AddSong(song)
 		session.AddSong(song)
 		session.Play()
@@ -87,13 +87,13 @@ func Test(t *testing.T) {
 	t.Logf("\tTest %d:\tDeleteSong test", testID)
 	{
 		session.DeleteSong(1)
-		if session.List.Front().Value.(track).Duration != 5 {
+		if session.List.Front().Value.(Track).Duration != 5 {
 			t.Fatal("Wrong track deleted")
 		}
-		if session.List.Front().Next().Value.(track).Duration != 2 {
+		if session.List.Front().Next().Value.(Track).Duration != 2 {
 			t.Fatal("Wrong track deleted")
 		}
-		if session.List.Front().Next().Value.(track).Duration != 2 {
+		if session.List.Front().Next().Value.(Track).Duration != 2 {
 			t.Fatal("Wrong track deleted")
 		}
 	}

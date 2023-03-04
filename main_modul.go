@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type track struct {
+type Track struct {
 	Name     string
 	Duration time.Duration
 	Id       uint64
@@ -16,7 +16,7 @@ type track struct {
 type Playlist struct {
 	List      *list.List
 	Current   *list.Element
-	IsPlaying bool
+	isPlaying bool
 	timer     *timer.Timer
 	mutex     sync.Mutex
 }
@@ -25,6 +25,10 @@ func NewPlaylist() *Playlist {
 	var obj Playlist
 	obj.List = list.New()
 	return &obj
+}
+
+func (obj *Playlist) PlayingStatus() bool {
+	return obj.isPlaying
 }
 
 func (obj *Playlist) Prev() bool {
@@ -47,7 +51,7 @@ func (obj *Playlist) Next() bool {
 	return true
 }
 
-func (obj *Playlist) AddSong(newTrack track) {
+func (obj *Playlist) AddSong(newTrack Track) {
 	obj.mutex.Lock()
 	defer obj.mutex.Unlock()
 	obj.List.PushBack(newTrack)
@@ -79,20 +83,20 @@ func (obj *Playlist) DeleteSong(pos int) bool {
 }
 
 func (obj *Playlist) Pause() {
-	if obj.IsPlaying == true {
-		obj.IsPlaying = false
+	if obj.isPlaying == true {
+		obj.isPlaying = false
 		obj.timer.Pause()
 	}
 }
 
 func (obj *Playlist) Play() {
-	if obj.IsPlaying == false {
+	if obj.isPlaying == false {
 		if obj.timer == nil {
 			if obj.Current != nil {
-				obj.IsPlaying = true
-				obj.timer = timer.AfterFunc(time.Second*obj.Current.Value.(track).Duration, func() {
+				obj.isPlaying = true
+				obj.timer = timer.AfterFunc(time.Second*obj.Current.Value.(Track).Duration, func() {
 					obj.timer = nil
-					obj.IsPlaying = false
+					obj.isPlaying = false
 					if obj.Current.Next() != nil {
 						obj.Current = obj.Current.Next()
 						obj.Play()
@@ -103,7 +107,7 @@ func (obj *Playlist) Play() {
 				panic("List is empty")
 			}
 		} else {
-			obj.IsPlaying = true
+			obj.isPlaying = true
 			obj.timer.Start()
 		}
 	}
@@ -112,7 +116,7 @@ func (obj *Playlist) Play() {
 func (obj *Playlist) changeCurrent(toChange *list.Element) {
 	obj.timer.Stop()
 	obj.timer = nil
-	obj.IsPlaying = false
+	obj.isPlaying = false
 	obj.Current = toChange
 	obj.Play()
 }
