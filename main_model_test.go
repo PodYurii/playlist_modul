@@ -86,15 +86,28 @@ func Test(t *testing.T) {
 	testID++
 	t.Logf("\tTest %d:\tDeleteSong test", testID)
 	{
-		session.DeleteSong(1)
-		if session.List.Front().Value.(Track).Duration != 5 {
+		session.DeleteSong(2)
+		el := session.List.Front()
+		if el.Value.(Track).Duration != 5 {
 			t.Fatal("Wrong track deleted")
 		}
-		if session.List.Front().Next().Value.(Track).Duration != 2 {
-			t.Fatal("Wrong track deleted")
+		el = el.Next()
+		if el.Value.(Track).Duration != 2 {
+			t.Fatal("1-Wrong track deleted")
 		}
-		if session.List.Front().Next().Value.(Track).Duration != 2 {
-			t.Fatal("Wrong track deleted")
+		el = el.Next()
+		if el.Value.(Track).Duration != 2 {
+			t.Fatal("2-Wrong track deleted")
+		}
+		session.DeleteSong(2)
+		el = session.List.Front()
+		if el.Value.(Track).Duration != 5 {
+			t.Fatal("3-Wrong track deleted")
+		}
+		el = el.Next()
+		if el.Value.(Track).Duration != 2 {
+			t.Fatal("4-Wrong track deleted")
 		}
 	}
+	session.Destructor()
 }
