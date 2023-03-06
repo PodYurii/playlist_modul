@@ -10,7 +10,7 @@ func Test(t *testing.T) {
 	testID := 0
 	t.Logf("\tTest %d:\tPlay test", testID)
 	{
-		song := Track{Name: "test", Duration: 5}
+		song := Track{Name: "test", Duration: 5 * time.Second}
 		session.AddSong(song)
 		session.Play()
 		if session.timer == nil || session.isPlaying == false {
@@ -63,10 +63,12 @@ func Test(t *testing.T) {
 	testID++
 	t.Logf("\tTest %d:\tNext test", testID)
 	{
-		song := Track{Name: "test1", Duration: 1}
+		song := Track{Name: "test1", Duration: 1 * time.Second}
 		session.AddSong(song)
 		session.Play()
-		session.Next()
+		if !session.Next() {
+			t.Fatal("Next error")
+		}
 		if session.Current.Value.(Track).Name != "test1" {
 			t.Fatal("Wrong track")
 		}
@@ -74,38 +76,41 @@ func Test(t *testing.T) {
 	testID++
 	t.Logf("\tTest %d:\tAdvanced Play test", testID)
 	{
-		song := Track{Name: "test2", Duration: 2}
+		song := Track{Name: "test2", Duration: 2 * time.Second}
 		session.AddSong(song)
-		session.AddSong(song)
+		song1 := Track{Name: "test3", Duration: 3 * time.Second}
+		session.AddSong(song1)
+		//t.Logf(session.Current.Value.(Track).Name)
 		session.Play()
-		time.Sleep(time.Second * 6)
-		if session.Current.Next() != nil {
+		time.Sleep(time.Second * 7)
+		//t.Logf(session.Current.Value.(Track).Name)
+		if session.Current.Next() != nil || session.isPlaying {
 			t.Fatal("Wrong position")
 		}
 	}
 	testID++
 	t.Logf("\tTest %d:\tDeleteSong test", testID)
 	{
-		session.DeleteSong(2)
+		session.DeleteSong(3)
 		el := session.List.Front()
-		if el.Value.(Track).Duration != 5 {
+		if el.Value.(Track).Duration != 5*time.Second {
 			t.Fatal("Wrong track deleted")
 		}
 		el = el.Next()
-		if el.Value.(Track).Duration != 2 {
+		if el.Value.(Track).Duration != 1*time.Second {
 			t.Fatal("1-Wrong track deleted")
 		}
 		el = el.Next()
-		if el.Value.(Track).Duration != 2 {
+		if el.Value.(Track).Duration != 2*time.Second {
 			t.Fatal("2-Wrong track deleted")
 		}
-		session.DeleteSong(2)
+		session.DeleteSong(1)
 		el = session.List.Front()
-		if el.Value.(Track).Duration != 5 {
+		if el.Value.(Track).Duration != 5*time.Second {
 			t.Fatal("3-Wrong track deleted")
 		}
 		el = el.Next()
-		if el.Value.(Track).Duration != 2 {
+		if el.Value.(Track).Duration != 2*time.Second {
 			t.Fatal("4-Wrong track deleted")
 		}
 	}

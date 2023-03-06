@@ -74,15 +74,15 @@ func (obj *Playlist) DeleteSong(pos int) bool {
 	obj.mutex.Lock()
 	defer obj.mutex.Unlock()
 	var el *list.Element
-	if pos > obj.List.Len()/2 {
+	if pos > obj.List.Len()/2-1 {
+		el = obj.List.Back()
+		for i := obj.List.Len() - 1; i > pos; i-- {
+			el = el.Prev()
+		}
+	} else {
 		el = obj.List.Front()
 		for i := 0; i < pos; i++ {
 			el = el.Next()
-		}
-	} else {
-		el = obj.List.Back()
-		for i := obj.List.Len(); i > pos; i-- {
-			el = el.Prev()
 		}
 	}
 	if obj.Current == el {
@@ -113,7 +113,7 @@ func (obj *Playlist) Play() bool {
 		if obj.timer == nil {
 			if obj.Current != nil {
 				obj.isPlaying = true
-				obj.timer = timer.AfterFunc(time.Second*obj.Current.Value.(Track).Duration, func() {
+				obj.timer = timer.AfterFunc(obj.Current.Value.(Track).Duration, func() {
 					obj.timer = nil
 					obj.isPlaying = false
 					obj.mutex.Lock()
