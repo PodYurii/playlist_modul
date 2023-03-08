@@ -3,6 +3,8 @@ module github.com/PodYurii/playlist_module
 go 1.19
 
 require (
+	github.com/hajimehoshi/go-mp3 v0.3.4
+	github.com/hajimehoshi/oto/v2 v2.3.1
 	github.com/ivahaev/timer v0.0.0-20220304073306-2c469eaf1e44
 	google.golang.org/grpc v1.53.0
 	google.golang.org/protobuf v1.28.1

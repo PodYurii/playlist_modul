@@ -1,6 +1,7 @@
 package playlist_module
 
 import (
+	"os"
 	"testing"
 	"time"
 )
@@ -8,16 +9,22 @@ import (
 func Test(t *testing.T) {
 	session := NewPlaylist()
 	testID := 0
+	fileBytes, err := os.ReadFile("./mp3_1.mp3")
+	if err != nil {
+		panic("reading my-file.mp3 failed: " + err.Error())
+	}
 	t.Logf("\tTest %d:\tPlay test", testID)
 	{
 		song := Track{Name: "test", Duration: 5 * time.Second}
 		session.AddSong(song)
+		session.AddChunk(fileBytes)
+		session.UnlockData()
 		session.Play()
-		if session.timer == nil || session.isPlaying == false {
+		if session.timer == nil || session.PlayingStatus() == false {
 			t.Fatal("Timer is not created or Flag is false")
 		}
 		time.Sleep(time.Second * 6)
-		if session.timer != nil || session.isPlaying == true {
+		if session.timer != nil || session.PlayingStatus() == true {
 			t.Fatal("Timer is not expanse or Flag is true")
 		}
 	}
@@ -25,8 +32,10 @@ func Test(t *testing.T) {
 	t.Logf("\tTest %d:\tTimer existence", testID)
 	{
 		i := 0
+		session.AddChunk(fileBytes)
+		session.UnlockData()
 		session.Play()
-		for session.isPlaying && i < 110 {
+		for session.PlayingStatus() && i < 110 {
 			time.Sleep(time.Millisecond * 50)
 			i++
 		}
@@ -40,11 +49,13 @@ func Test(t *testing.T) {
 	{
 		i := 0
 		c := make(chan bool)
+		session.AddChunk(fileBytes)
+		session.UnlockData()
 		session.Play()
 		go func() {
 			for session.timer != nil && i < 130 {
 				time.Sleep(time.Millisecond * 50)
-				if session.isPlaying == true {
+				if session.PlayingStatus() == true {
 					i++
 				}
 			}
@@ -65,7 +76,14 @@ func Test(t *testing.T) {
 	{
 		song := Track{Name: "test1", Duration: 1 * time.Second}
 		session.AddSong(song)
+		session.AddChunk(fileBytes)
+		session.UnlockData()
 		session.Play()
+		go func() {
+			time.Sleep(time.Millisecond * 200)
+			session.AddChunk(fileBytes)
+			session.UnlockData()
+		}()
 		if !session.Next() {
 			t.Fatal("Next error")
 		}
@@ -75,7 +93,7 @@ func Test(t *testing.T) {
 		if session.Next() {
 			t.Fatal("Next wrong usage")
 		}
-
+		time.Sleep(time.Second)
 	}
 	testID++
 	t.Logf("\tTest %d:\tAdvanced Play test", testID)
@@ -84,9 +102,19 @@ func Test(t *testing.T) {
 		session.AddSong(song)
 		song1 := Track{Name: "test3", Duration: 3 * time.Second}
 		session.AddSong(song1)
+		session.AddChunk(fileBytes)
+		session.UnlockData()
+		go func() {
+			time.Sleep(time.Second*1 + time.Millisecond*50)
+			session.AddChunk(fileBytes)
+			session.UnlockData()
+			time.Sleep(time.Second*2 + time.Millisecond*50)
+			session.AddChunk(fileBytes)
+			session.UnlockData()
+		}()
 		session.Play()
 		time.Sleep(time.Second * 7)
-		if session.Current.Next() != nil || session.isPlaying {
+		if session.Current.Next() != nil || session.PlayingStatus() {
 			t.Fatal("Wrong position")
 		}
 	}

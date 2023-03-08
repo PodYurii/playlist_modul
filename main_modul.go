@@ -1,8 +1,12 @@
 package playlist_module
 
 import (
+	"bytes"
 	"container/list"
+	"github.com/hajimehoshi/go-mp3"
+	"github.com/hajimehoshi/oto/v2"
 	"github.com/ivahaev/timer"
+	"log"
 	"sync"
 	"time"
 )
@@ -14,36 +18,75 @@ type Track struct {
 }
 
 type Playlist struct {
-	List      *list.List
-	Current   *list.Element
-	isPlaying bool
-	timer     *timer.Timer
-	mutex     sync.Mutex
+	List    *list.List
+	Current *list.Element
+	Oto     *oto.Context
+	player  oto.Player
+	timer   *timer.Timer
+	mutexL  sync.Mutex
+	mutexD  sync.Mutex
+	data    []byte
 }
 
 func NewPlaylist() *Playlist {
 	var obj Playlist
 	obj.List = list.New()
+	otoCtx, readyChan, err := oto.NewContext(44100, 2, 2)
+	if err != nil {
+		panic("oto.NewContext failed: " + err.Error())
+	}
+	<-readyChan
+	obj.Oto = otoCtx
+	obj.data = make([]byte, 0)
+	obj.mutexD.Lock()
 	return &obj
 }
 
 func (obj *Playlist) Destructor() {
-	obj.mutex.Lock()
+	obj.mutexL.Lock()
 	obj.Current = nil
-	if obj.timer != nil {
-		obj.timer.Stop()
-		obj.timer = nil
-	}
+	obj.PlayerClose()
 	obj.List = nil
 }
 
+func (obj *Playlist) UnlockData() {
+	obj.mutexD.Unlock()
+}
+
+func (obj *Playlist) DataCheck() bool {
+	if len(obj.data) == 0 {
+		return true
+	}
+	return false
+}
+
+func (obj *Playlist) AddChunk(chunk []byte) {
+	obj.data = append(obj.data, chunk...)
+}
+
+func (obj *Playlist) PlayerClose() {
+	if obj.player != nil {
+		obj.timer = nil
+		obj.player.Pause()
+		obj.data = make([]byte, 0)
+		err := obj.player.Close()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+	}
+}
+
 func (obj *Playlist) PlayingStatus() bool {
-	return obj.isPlaying
+	if obj.player == nil {
+		return false
+	}
+	return obj.player.IsPlaying()
 }
 
 func (obj *Playlist) Prev() bool {
-	obj.mutex.Lock()
-	defer obj.mutex.Unlock()
+	obj.mutexL.Lock()
+	defer obj.mutexL.Unlock()
 	if obj.Current.Prev() == nil {
 		return false
 	}
@@ -52,8 +95,8 @@ func (obj *Playlist) Prev() bool {
 }
 
 func (obj *Playlist) Next() bool {
-	obj.mutex.Lock()
-	defer obj.mutex.Unlock()
+	obj.mutexL.Lock()
+	defer obj.mutexL.Unlock()
 	if obj.Current.Next() == nil {
 		return false
 	}
@@ -62,8 +105,8 @@ func (obj *Playlist) Next() bool {
 }
 
 func (obj *Playlist) AddSong(newTrack Track) {
-	obj.mutex.Lock()
-	defer obj.mutex.Unlock()
+	obj.mutexL.Lock()
+	defer obj.mutexL.Unlock()
 	obj.List.PushBack(newTrack)
 	if obj.List.Len() == 1 {
 		obj.Current = obj.List.Back()
@@ -71,8 +114,8 @@ func (obj *Playlist) AddSong(newTrack Track) {
 }
 
 func (obj *Playlist) DeleteSong(pos int) bool {
-	obj.mutex.Lock()
-	defer obj.mutex.Unlock()
+	obj.mutexL.Lock()
+	defer obj.mutexL.Unlock()
 	var el *list.Element
 	if pos > obj.List.Len()/2-1 {
 		el = obj.List.Back()
@@ -86,7 +129,7 @@ func (obj *Playlist) DeleteSong(pos int) bool {
 		}
 	}
 	if obj.Current == el {
-		if obj.isPlaying {
+		if obj.PlayingStatus() {
 			return false
 		}
 		if obj.Current.Next() != nil {
@@ -96,41 +139,61 @@ func (obj *Playlist) DeleteSong(pos int) bool {
 		} else {
 			obj.Current = nil
 		}
+		obj.PlayerClose()
 	}
 	obj.List.Remove(el)
 	return true
 }
 
 func (obj *Playlist) Pause() {
-	if obj.isPlaying == true {
-		obj.isPlaying = false
+	if obj.player.IsPlaying() == true {
+		obj.player.Pause()
 		obj.timer.Pause()
 	}
 }
 
 func (obj *Playlist) Play() bool {
-	if obj.isPlaying == false {
+	if obj.PlayingStatus() == false {
 		if obj.timer == nil {
 			if obj.Current != nil {
-				obj.isPlaying = true
+				obj.mutexD.Lock()
+				if len(obj.data) == 0 {
+					log.Println("Empty data!")
+					return false
+				}
+				fileBytesReader := bytes.NewReader(obj.data)
+				decodedMp3, err := mp3.NewDecoder(fileBytesReader)
+				if err != nil {
+					log.Println("mp3.NewDecoder failed: ", err)
+					obj.data = make([]byte, 0)
+					obj.mutexD.Unlock()
+					return false
+				}
+				obj.player = obj.Oto.NewPlayer(decodedMp3)
 				obj.timer = timer.AfterFunc(obj.Current.Value.(Track).Duration, func() {
 					obj.timer = nil
-					obj.isPlaying = false
-					obj.mutex.Lock()
+					obj.player.Pause()
+					err := obj.player.Close()
+					if err != nil {
+						return
+					}
+					obj.data = make([]byte, 0)
+					obj.mutexL.Lock()
 					if obj.Current.Next() != nil {
 						obj.Current = obj.Current.Next()
-						obj.mutex.Unlock()
+						obj.mutexL.Unlock()
 						obj.Play()
 						return
 					}
-					obj.mutex.Unlock()
+					obj.mutexL.Unlock()
 				})
 				obj.timer.Start()
+				obj.player.Play()
 			} else {
 				return false
 			}
 		} else {
-			obj.isPlaying = true
+			obj.player.Play()
 			obj.timer.Start()
 		}
 	}
@@ -138,10 +201,8 @@ func (obj *Playlist) Play() bool {
 }
 
 func (obj *Playlist) changeCurrent(toChange *list.Element) {
-	if obj.isPlaying == true {
-		obj.timer.Stop()
-		obj.timer = nil
-		obj.isPlaying = false
+	if obj.player != nil {
+		obj.PlayerClose()
 	}
 	obj.Current = toChange
 	obj.Play()
