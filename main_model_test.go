@@ -72,6 +72,10 @@ func Test(t *testing.T) {
 		if session.Current.Value.(Track).Name != "test1" {
 			t.Fatal("Wrong track")
 		}
+		if session.Next() {
+			t.Fatal("Next wrong usage")
+		}
+
 	}
 	testID++
 	t.Logf("\tTest %d:\tAdvanced Play test", testID)
@@ -80,10 +84,8 @@ func Test(t *testing.T) {
 		session.AddSong(song)
 		song1 := Track{Name: "test3", Duration: 3 * time.Second}
 		session.AddSong(song1)
-		//t.Logf(session.Current.Value.(Track).Name)
 		session.Play()
 		time.Sleep(time.Second * 7)
-		//t.Logf(session.Current.Value.(Track).Name)
 		if session.Current.Next() != nil || session.isPlaying {
 			t.Fatal("Wrong position")
 		}
@@ -114,5 +116,9 @@ func Test(t *testing.T) {
 			t.Fatal("4-Wrong track deleted")
 		}
 	}
-	session.Destructor()
+	testID++
+	t.Logf("\tTest %d:\tDeleteSong test", testID)
+	{
+		session.Destructor()
+	}
 }

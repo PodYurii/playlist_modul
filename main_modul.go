@@ -138,9 +138,11 @@ func (obj *Playlist) Play() bool {
 }
 
 func (obj *Playlist) changeCurrent(toChange *list.Element) {
-	obj.timer.Stop()
-	obj.timer = nil
-	obj.isPlaying = false
+	if obj.isPlaying == true {
+		obj.timer.Stop()
+		obj.timer = nil
+		obj.isPlaying = false
+	}
 	obj.Current = toChange
 	obj.Play()
 }
