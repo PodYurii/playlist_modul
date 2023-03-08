@@ -88,23 +88,25 @@ func (obj *Playlist) PlayingStatus() bool {
 	return obj.player.IsPlaying()
 }
 
-func (obj *Playlist) Prev() bool {
+func (obj *Playlist) Prev(ch chan bool) bool {
 	obj.mutexL.Lock()
 	defer obj.mutexL.Unlock()
 	if obj.Current.Prev() == nil {
+		ch <- false
 		return false
 	}
-	obj.changeCurrent(obj.Current.Prev())
+	obj.changeCurrent(obj.Current.Prev(), ch)
 	return true
 }
 
-func (obj *Playlist) Next() bool {
+func (obj *Playlist) Next(ch chan bool) bool {
 	obj.mutexL.Lock()
 	defer obj.mutexL.Unlock()
 	if obj.Current.Next() == nil {
+		ch <- false
 		return false
 	}
-	obj.changeCurrent(obj.Current.Next())
+	obj.changeCurrent(obj.Current.Next(), ch)
 	return true
 }
 
@@ -200,10 +202,11 @@ func (obj *Playlist) Play() {
 	return
 }
 
-func (obj *Playlist) changeCurrent(toChange *list.Element) {
+func (obj *Playlist) changeCurrent(toChange *list.Element, ch chan bool) {
 	if obj.player != nil {
 		obj.PlayerClose()
 	}
 	obj.Current = toChange
+	ch <- true
 	obj.Play()
 }

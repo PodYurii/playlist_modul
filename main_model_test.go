@@ -78,19 +78,25 @@ func Test(t *testing.T) {
 		session.AddSong(song)
 		session.AddChunk(fileBytes)
 		session.UnlockData()
+		ch1 := make(chan bool)
+		ch2 := make(chan bool)
+		go func() {
+			<-ch1
+			<-ch2
+		}()
 		session.Play()
 		go func() {
 			time.Sleep(time.Millisecond * 200)
 			session.AddChunk(fileBytes)
 			session.UnlockData()
 		}()
-		if !session.Next() {
+		if !session.Next(ch1) {
 			t.Fatal("Next error")
 		}
 		if session.Current.Value.(Track).Name != "test1" {
 			t.Fatal("Wrong track")
 		}
-		if session.Next() {
+		if session.Next(ch2) {
 			t.Fatal("Next wrong usage")
 		}
 		time.Sleep(time.Second)
