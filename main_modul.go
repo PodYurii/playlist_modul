@@ -53,6 +53,10 @@ func (obj *Playlist) UnlockData() {
 	obj.mutexD.Unlock()
 }
 
+func (obj *Playlist) ClearData() {
+	obj.data = make([]byte, 0)
+}
+
 func (obj *Playlist) DataCheck() bool {
 	if len(obj.data) == 0 {
 		return true
@@ -152,52 +156,48 @@ func (obj *Playlist) Pause() {
 	}
 }
 
-func (obj *Playlist) Play() bool {
+func (obj *Playlist) Play() {
 	if obj.PlayingStatus() == false {
 		if obj.timer == nil {
-			if obj.Current != nil {
-				obj.mutexD.Lock()
-				if len(obj.data) == 0 {
-					log.Println("Empty data!")
-					return false
-				}
-				fileBytesReader := bytes.NewReader(obj.data)
-				decodedMp3, err := mp3.NewDecoder(fileBytesReader)
-				if err != nil {
-					log.Println("mp3.NewDecoder failed: ", err)
-					obj.data = make([]byte, 0)
-					obj.mutexD.Unlock()
-					return false
-				}
-				obj.player = obj.Oto.NewPlayer(decodedMp3)
-				obj.timer = timer.AfterFunc(obj.Current.Value.(Track).Duration, func() {
-					obj.timer = nil
-					obj.player.Pause()
-					err := obj.player.Close()
-					if err != nil {
-						return
-					}
-					obj.data = make([]byte, 0)
-					obj.mutexL.Lock()
-					if obj.Current.Next() != nil {
-						obj.Current = obj.Current.Next()
-						obj.mutexL.Unlock()
-						obj.Play()
-						return
-					}
-					obj.mutexL.Unlock()
-				})
-				obj.timer.Start()
-				obj.player.Play()
-			} else {
-				return false
+			obj.mutexD.Lock()
+			if len(obj.data) == 0 {
+				log.Println("Empty data!")
+				return
 			}
+			fileBytesReader := bytes.NewReader(obj.data)
+			decodedMp3, err := mp3.NewDecoder(fileBytesReader)
+			if err != nil {
+				log.Println("mp3.NewDecoder failed: ", err)
+				obj.data = make([]byte, 0)
+				obj.mutexD.Unlock()
+				return
+			}
+			obj.player = obj.Oto.NewPlayer(decodedMp3)
+			obj.timer = timer.AfterFunc(obj.Current.Value.(Track).Duration, func() {
+				obj.timer = nil
+				obj.player.Pause()
+				err := obj.player.Close()
+				if err != nil {
+					return
+				}
+				obj.data = make([]byte, 0)
+				obj.mutexL.Lock()
+				if obj.Current.Next() != nil {
+					obj.Current = obj.Current.Next()
+					obj.mutexL.Unlock()
+					obj.Play()
+					return
+				}
+				obj.mutexL.Unlock()
+			})
+			obj.timer.Start()
+			obj.player.Play()
 		} else {
 			obj.player.Play()
 			obj.timer.Start()
 		}
 	}
-	return true
+	return
 }
 
 func (obj *Playlist) changeCurrent(toChange *list.Element) {
