@@ -11,24 +11,24 @@ import (
 	"time"
 )
 
-type Track struct {
+type Track struct { // Element of List, containing all information about track
 	Name     string
 	Duration time.Duration
-	Id       uint64
+	Id       uint64 // Id on server side
 }
 
 type Playlist struct {
 	List    *list.List
 	Current *list.Element
-	Oto     *oto.Context
+	Oto     *oto.Context // main OtoV2 module for creating players of tracks(only one)
 	player  oto.Player
-	timer   *timer.Timer
-	mutexL  sync.Mutex
-	mutexD  sync.Mutex
-	data    []byte
+	timer   *timer.Timer // timer with pause/stop
+	mutexL  sync.Mutex   // mutex for List
+	mutexD  sync.Mutex   // mutex for catching signal about track data ready state(like a self-refreshing channel) and 99% time is locked
+	data    []byte       // track in bytes
 }
 
-func NewPlaylist() *Playlist {
+func NewPlaylist() *Playlist { //Constructor
 	var obj Playlist
 	obj.List = list.New()
 	otoCtx, readyChan, err := oto.NewContext(44100, 2, 2)
@@ -49,26 +49,26 @@ func (obj *Playlist) Destructor() {
 	obj.List = nil
 }
 
-func (obj *Playlist) UnlockData() {
+func (obj *Playlist) UnlockData() { //Called to inform playlist about readiness to play(after all data is written)
 	obj.mutexD.Unlock()
 }
 
-func (obj *Playlist) ClearData() {
+func (obj *Playlist) ClearData() { //Called to clear slice after errors
 	obj.data = make([]byte, 0)
 }
 
-func (obj *Playlist) DataCheck() bool {
+func (obj *Playlist) DataCheck() bool { // Called to check data availability(it's a first play call for this track or no?)
 	if len(obj.data) == 0 {
 		return true
 	}
 	return false
 }
 
-func (obj *Playlist) AddChunk(chunk []byte) {
+func (obj *Playlist) AddChunk(chunk []byte) { // Called to write chunk of bytes after receiving another package from stream
 	obj.data = append(obj.data, chunk...)
 }
 
-func (obj *Playlist) PlayerClose() {
+func (obj *Playlist) PlayerClose() { // Called to Close current playing track( after next, prev, delete, destructor)
 	if obj.player != nil {
 		obj.timer = nil
 		obj.player.Pause()
@@ -123,7 +123,7 @@ func (obj *Playlist) DeleteSong(pos int) bool {
 	obj.mutexL.Lock()
 	defer obj.mutexL.Unlock()
 	var el *list.Element
-	if pos > obj.List.Len()/2-1 {
+	if pos > obj.List.Len()/2-1 { //counting from the nearest end
 		el = obj.List.Back()
 		for i := obj.List.Len() - 1; i > pos; i-- {
 			el = el.Prev()
@@ -134,7 +134,7 @@ func (obj *Playlist) DeleteSong(pos int) bool {
 			el = el.Next()
 		}
 	}
-	if obj.Current == el {
+	if obj.Current == el { // if track is current, but is not played, we should change current pointer
 		if obj.PlayingStatus() {
 			return false
 		}
@@ -145,7 +145,7 @@ func (obj *Playlist) DeleteSong(pos int) bool {
 		} else {
 			obj.Current = nil
 		}
-		obj.PlayerClose()
+		obj.PlayerClose() // stop timer and player for current track
 	}
 	obj.List.Remove(el)
 	return true
@@ -158,24 +158,23 @@ func (obj *Playlist) Pause() {
 	}
 }
 
-func (obj *Playlist) Play() {
-	if obj.PlayingStatus() == false {
-		if obj.timer == nil {
-			obj.mutexD.Lock()
-			if len(obj.data) == 0 {
+func (obj *Playlist) Play() { //Current != nil check must take place before call(in GUI or interface)!!
+	if obj.PlayingStatus() == false { // if track is playing just return
+		if obj.timer == nil { // if we already have timer and player, we can just resume it
+			obj.mutexD.Lock()       // wait for UnlockData call
+			if len(obj.data) == 0 { // interface or stream error protection
 				log.Println("Empty data!")
 				return
 			}
-			fileBytesReader := bytes.NewReader(obj.data)
+			fileBytesReader := bytes.NewReader(obj.data) // io.Reader for passing across bytes
 			decodedMp3, err := mp3.NewDecoder(fileBytesReader)
 			if err != nil {
 				log.Println("mp3.NewDecoder failed: ", err)
 				obj.data = make([]byte, 0)
-				obj.mutexD.Unlock()
 				return
 			}
 			obj.player = obj.Oto.NewPlayer(decodedMp3)
-			obj.timer = timer.AfterFunc(obj.Current.Value.(Track).Duration, func() {
+			obj.timer = timer.AfterFunc(obj.Current.Value.(Track).Duration, func() { // func for switching to next track after ending of current
 				obj.timer = nil
 				obj.player.Pause()
 				err := obj.player.Close()
@@ -192,8 +191,8 @@ func (obj *Playlist) Play() {
 				}
 				obj.mutexL.Unlock()
 			})
-			obj.timer.Start()
 			obj.player.Play()
+			obj.timer.Start()
 		} else {
 			obj.player.Play()
 			obj.timer.Start()
@@ -202,11 +201,11 @@ func (obj *Playlist) Play() {
 	return
 }
 
-func (obj *Playlist) changeCurrent(toChange *list.Element, ch chan bool) {
+func (obj *Playlist) changeCurrent(toChange *list.Element, ch chan bool) { // Called in Next and Prev(common code)
 	if obj.player != nil {
 		obj.PlayerClose()
 	}
 	obj.Current = toChange
-	ch <- true
+	ch <- true // used to tell interface about readiness to download new data after changing current
 	obj.Play()
 }

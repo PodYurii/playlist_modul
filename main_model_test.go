@@ -9,7 +9,7 @@ import (
 func Test(t *testing.T) {
 	session := NewPlaylist()
 	testID := 0
-	fileBytes, err := os.ReadFile("./mp3_1.mp3")
+	fileBytes, err := os.ReadFile("./mp3_1.mp3") // for tests used one track with different duration
 	if err != nil {
 		panic("reading my-file.mp3 failed: " + err.Error())
 	}
@@ -72,7 +72,7 @@ func Test(t *testing.T) {
 		}
 	}
 	testID++
-	t.Logf("\tTest %d:\tNext test", testID)
+	t.Logf("\tTest %d:\tNext test", testID) // And Prev
 	{
 		song := Track{Name: "test1", Duration: 1 * time.Second}
 		session.AddSong(song)
