@@ -26,6 +26,7 @@ type Playlist struct {
 	mutexL  sync.Mutex   // mutex for List
 	mutexD  sync.Mutex   // mutex for catching signal about track data ready state(like a self-refreshing channel) and 99% time is locked
 	data    []byte       // track in bytes
+	Ch      chan bool    // chan for downloading data for playing without stopping
 }
 
 func NewPlaylist() *Playlist { //Constructor
@@ -39,6 +40,7 @@ func NewPlaylist() *Playlist { //Constructor
 	obj.Oto = otoCtx
 	obj.data = make([]byte, 0)
 	obj.mutexD.Lock()
+	obj.Ch = make(chan bool)
 	return &obj
 }
 
@@ -47,6 +49,8 @@ func (obj *Playlist) Destructor() {
 	obj.Current = nil
 	obj.PlayerClose()
 	obj.List = nil
+	obj.Ch <- false
+	close(obj.Ch)
 }
 
 func (obj *Playlist) UnlockData() { //Called to inform playlist about readiness to play(after all data is written)
@@ -186,6 +190,7 @@ func (obj *Playlist) Play() { //Current != nil check must take place before call
 				if obj.Current.Next() != nil {
 					obj.Current = obj.Current.Next()
 					obj.mutexL.Unlock()
+					obj.Ch <- true
 					obj.Play()
 					return
 				}

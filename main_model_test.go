@@ -111,10 +111,10 @@ func Test(t *testing.T) {
 		session.AddChunk(fileBytes)
 		session.UnlockData()
 		go func() {
-			time.Sleep(time.Second*1 + time.Millisecond*50)
+			<-session.Ch
 			session.AddChunk(fileBytes)
 			session.UnlockData()
-			time.Sleep(time.Second*2 + time.Millisecond*50)
+			<-session.Ch
 			session.AddChunk(fileBytes)
 			session.UnlockData()
 		}()
